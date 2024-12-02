@@ -283,7 +283,7 @@ def allocate_students_sparse(course_dict, exam_timetable, room_data, output_file
 
     print(f"Excel file '{output_file}' created successfully.")
     return allocation_df
-if _name_ == '_main_':
+if __name__ == '__main__':
    file_path = '/content/ip_1.xlsx'  # Replace with the actual file path
    students_data = process_student_data(file_path)
    print(students_data)
@@ -349,7 +349,7 @@ if _name_ == '_main_':
      time_slot = row['Time'].lower()  # Ensure "morning" or "evening"
 
     # Create a unique sheet name using extracted information
-     sheet_name = f"{date}{course_code}{room_no}_{time_slot}"
+     sheet_name = f"{date}_{course_code}_{room_no}_{time_slot}"
  
     # Get the roll list for the current row and split by comma if necessary
      roll_numbers = row['Roll_list'].split(';')
