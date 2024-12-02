@@ -1,39 +1,27 @@
 import numpy as np
 import pandas as pd
-import openpyxl
-from openpyxl import Workbook
 from datetime import datetime
+from openpyxl import Workbook
+
 course_dict = {}
 def process_student_data(file_path):
-    """
-    Processes an Excel file containing student data and organizes roll numbers by course codes.
-
-    Args:
-        file_path (str): Path to the Excel file.
-
-    Returns:
-        dict: A dictionary where keys are course codes and values are sorted lists of roll numbers.
-    """
-    # Load the Excel file, assuming the header is in the first row
+    
     df = pd.read_excel(file_path, header=0)
     
-    # Create an empty dictionary to store course codes and roll numbers
     
-
-    # Loop through each row and populate the dictionary
     for _, row in df.iterrows():
-        course_code = row['course_code']  # Access the course_code column
-        rollno = row['rollno']  # Access the rollno column
+        course_code = row['course_code'] 
+        rollno = row['rollno'] 
 
-        # Check if the course_code is already a key in the dictionary
+       
         if course_code in course_dict:
-            course_dict[course_code].append(rollno)  # Append the roll number to the existing list
+            course_dict[course_code].append(rollno)  
         else:
-            course_dict[course_code] = [rollno]  # Create a new list with the roll number
+            course_dict[course_code] = [rollno] 
 
-    # Sort each individual key's list of roll numbers
+   
     for course_code in course_dict:
-        course_dict[course_code].sort()  # Sort the list in ascending order
+        course_dict[course_code].sort()  
 
     return course_dict
 def sort_rooms(file_path):
@@ -46,88 +34,64 @@ def sort_rooms(file_path):
     Returns:
         pd.DataFrame: A sorted DataFrame with rooms organized by floors and LT logic.
     """
-    # Load the Excel file
+   
     df = pd.read_excel(file_path)
 
-    # Separate rooms into floor-based and LT rooms
-    floor_rooms = df[df['Room No.'].astype(str).str.match(r'^\d+')]  # Numeric room numbers
-    lt_rooms = df[df['Room No.'].astype(str).str.startswith('LT')]  # LT room numbers
+   
+    floor_rooms = df[df['Room No.'].astype(str).str.match(r'^\d+')]  
+    lt_rooms = df[df['Room No.'].astype(str).str.startswith('LT')] 
 
-    # Sort floor rooms by the first digit of the room number and by exam capacity
-    floor_rooms['Floor'] = floor_rooms['Room No.'].astype(str).str[0]  # Extract floor number
-    floor_sorted = floor_rooms.sort_values(by=['Floor', 'Exam Capacity'], ascending=[False, False])
+    
+    floor_rooms['Floor'] = floor_rooms['Room No.'].astype(str).str[0]  
+    floor_sorted = floor_rooms.sort_values(by=['Floor', 'Exam Capacity'], ascending=[True, False])
 
-    # Sort LT rooms by floor (0 floor first, then 1 floor)
+    
     lt_rooms['LT_Floor'] = lt_rooms['Room No.'].astype(str).str[2]  # Extract the floor number from LT (0 or 1)
-    lt_sorted = lt_rooms.sort_values(by=['LT_Floor', 'Room No.'], ascending=[False, True])
+    lt_sorted = lt_rooms.sort_values(by=['LT_Floor', 'Room No.'], ascending=[True, True])
 
-    # Combine the sorted floor rooms and LT rooms
+    
     sorted_rooms = pd.concat([floor_sorted, lt_sorted])
 
-    # Drop helper columns used for sorting
+    
     sorted_rooms = sorted_rooms.drop(columns=['Floor', 'LT_Floor'])
     print(sorted_rooms)
     return sorted_rooms
 def process_room_capacity(df, buffer):
-    """
-    Processes room data, adjusts remaining capacity, and retrieves a list of room numbers.
-
-    Args:
-        file_path (str): Path to the Excel file containing room data.
-        buffer (int): A buffer value (0-5) to subtract from the "Exam Capacity".
-
-    Returns:
-        tuple: A tuple containing:
-            - pd.DataFrame: The updated DataFrame with "Remaining Capacity".
-            - list: A list of room numbers.
-    """
+    
     if buffer < 0 or buffer > 5:
         raise ValueError("Buffer value must be between 0 and 5.")
 
-    # Load the Excel file
-    #df = pd.read_excel(file_path)
-
-    # Add "Remaining Capacity" column and adjust based on buffer
     df['Remaining Capacity'] = df['Exam Capacity'] - buffer
 
-    # Retrieve the list of room numbers
+
     room_numbers = df["Room No."].tolist()
     
     return df, room_numbers
 def process_exam_timetable(file_path, course_dict):
-    """
-    Processes an Excel file containing an exam timetable, formats the timetable, and sorts courses based on student count.
-
-    Args:
-        file_path (str): Path to the Excel file containing the exam timetable.
-        course_dict (dict): A dictionary where keys are course codes and values are lists of student roll numbers.
-
-    Returns:
-        dict: A formatted and sorted exam timetable.
-    """
-    # Load the Excel file
+    
+   
     df = pd.read_excel(file_path, skiprows=0)
 
-    # Create the dictionary
+   
     exam_timetable = {}
     for _, row in df.iterrows():
         date = row['Date']
         morning_courses = row['Morning']
         evening_courses = row['Evening']
 
-        # Add morning and evening courses to the timetable
+       
         exam_timetable[f"{date}_morning"] = morning_courses
         exam_timetable[f"{date}_evening"] = evening_courses
 
-    # Format the timetable to wrap each course string in a list
+    
     formatted_timetable = {}
     for key, courses in exam_timetable.items():
         formatted_timetable[key] = [courses]
 
-    # Sort courses based on the number of students in `course_dict`
+    
     for key, courses in formatted_timetable.items():
-        if courses[0] != 'NO EXAM':  # Skip if there is no exam
-            # Split courses, sort them using the length of student lists from course_dict, and rejoin
+        if courses[0] != 'NO EXAM':  
+
             sorted_courses = sorted(
                 courses[0].split('; '),
                 key=lambda course: len(course_dict.get(course, [])),
@@ -137,69 +101,44 @@ def process_exam_timetable(file_path, course_dict):
 
     return formatted_timetable
 def get_density_type():
-    """
-    Prompts the user to select a density type: 'dense' or 'sparse'.
-
-    Returns:
-        str: The selected density type ('dense' or 'sparse').
-    """
-    # Ask the user for input
+    
     density_input = input("Enter '1' for dense or '2' for sparse: ")
 
-    # Validate input
+   
     while density_input not in ['1', '2']:
         density_input = input("Invalid input. Please enter '1' for dense or '2' for sparse: ")
 
-    # Determine and return the density type
+    
     return 'dense' if density_input == '1' else 'sparse'
 def allocate_students_to_rooms(course_dict, exam_timetable, room_data, output_file='exam_allocation.xlsx'):
-    """
-    Allocates students to rooms for exams and generates an Excel file.
 
-    Args:
-        course_dict (dict): A dictionary where keys are course codes and values are lists of students.
-        exam_timetable (dict): A dictionary where keys are exam slots and values are lists of courses.
-        room_data (pd.DataFrame): A DataFrame containing room details with "Remaining Capacity".
-        output_file (str): The name of the output Excel file. Defaults to 'exam_allocation.xlsx'.
-
-    Returns:
-        pd.DataFrame: A DataFrame containing the allocation details.
-    """
     def get_day_from_date(date_str):
-        """
-        Extracts the weekday name from a date string.
-
-        Args:
-            date_str (str): Date string in the format '%Y-%m-%d %H:%M:%S'.
-
-        Returns:
-            str: The name of the weekday.
-        """
+       
         try:
             date_obj = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
         except ValueError:
             raise ValueError(f"Unexpected date format: {date_str}")
         return date_obj.strftime('%A')
 
-    # Initialize a list to hold allocation data
+    
     data = []
     dfx = room_data.copy(deep=True)
 
-    # Start allocating students to rooms
+    
     for exam_key, course_list in exam_timetable.items():
         if 'NO EXAM' in course_list:
-            continue  # Skip if no exam for that slot
+            continue  
 
-        dfx = room_data.copy(deep=True)  # Reset room capacities for each exam slot
+        dfx = room_data.copy(deep=True) 
 
-        # Split the exam_key to get date and time
+        
         date_part, time_part = exam_key.split('_')
-        day_part = get_day_from_date(date_part)  # Get the weekday
+        day_part = get_day_from_date(date_part)
 
-        courses = course_list[0].split('; ')  # Get the courses for that exam session
+        courses = course_list[0].split('; ')  
 
         for course in courses:
-            students = course_dict.get(course, [])  # Get the list of students for the course
+            students = course_dict.get(course, [])  
 
             # Iterate over rooms and allocate students based on remaining capacity
             for i, room in dfx.iterrows():
@@ -344,7 +283,7 @@ def allocate_students_sparse(course_dict, exam_timetable, room_data, output_file
 
     print(f"Excel file '{output_file}' created successfully.")
     return allocation_df
-if __name__ == '__main__':
+if _name_ == '_main_':
    file_path = '/content/ip_1.xlsx'  # Replace with the actual file path
    students_data = process_student_data(file_path)
    print(students_data)
@@ -370,7 +309,6 @@ if __name__ == '__main__':
     allocation_df = allocate_students_to_rooms(course_dict, exam_timetable, room_data)
    elif density_type == 'sparse':
     # Call the function for sparse allocation
-     room_data=updated_df
      allocation_df = allocate_students_sparse(course_dict, exam_timetable, room_data)
    else:
      print("Invalid density type. Please set it to 'dense' or 'sparse'.")
@@ -411,7 +349,7 @@ if __name__ == '__main__':
      time_slot = row['Time'].lower()  # Ensure "morning" or "evening"
 
     # Create a unique sheet name using extracted information
-     sheet_name = f"{date}_{course_code}_{room_no}_{time_slot}"
+     sheet_name = f"{date}{course_code}{room_no}_{time_slot}"
  
     # Get the roll list for the current row and split by comma if necessary
      roll_numbers = row['Roll_list'].split(';')
